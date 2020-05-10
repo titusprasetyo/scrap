@@ -2,3 +2,4 @@
 *.db
 *.xlsx
 .ipynb_checkpoints/*
+*.jpg
