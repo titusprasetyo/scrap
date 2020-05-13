@@ -13,10 +13,10 @@ import sqlite3
 
 #grab detail
 SQLMODE = "append"
-conn = sqlite3.connect('../data/scrap.lbagstore.db')
+conn = sqlite3.connect('../data/scrap.heylookofficial.db')
 cur = conn.cursor()
-cur.execute('select a.href, a.name from LBAGSTORE_MASTER a left join LBAGSTORE_IMAGES b on a.name=b.name where b.name is null order by "a.index" limit 15')
-# cur.execute('select a.href, a.name from LBAGSTORE_MASTER a order by "a.index" limit 1')
+cur.execute('select a.href, a.name from heylookofficial_master a left join heylookofficial_images b on a.name=b.name where b.name is null order by "a.index" limit 1')
+# cur.execute('select a.href, a.name from heylookofficial_master a order by "a.index" limit 1')
 reader = cur.fetchall()
 data_images = []
 data_variant = []
@@ -176,11 +176,11 @@ for line in reader:
     
     # insert images
     df = pd.DataFrame(data_images,columns=['name','images1','images2','images3','images4','images5','weight','category','min_purchase','success_rate','rating_number','product_views','product_desc'])
-    df.to_sql('LBAGSTORE_IMAGES', conn, if_exists=SQLMODE, index = False)
+    df.to_sql('heylookofficial_images', conn, if_exists=SQLMODE, index = False)
     
     #insert variant
     df = pd.DataFrame(data_variant,columns=['name','images'])
-    df.to_sql('LBAGSTORE_VARIANT', conn, if_exists=SQLMODE, index = False)
+    df.to_sql('heylookofficial_variant', conn, if_exists=SQLMODE, index = False)
     
     data_images.clear()
     data_variant.clear()

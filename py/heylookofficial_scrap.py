@@ -16,23 +16,13 @@ import sqlite3
 #get all product
 pages = []
 data = []
-pages.append('https://www.tokopedia.com/lbagstore/page/1?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/2?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/3?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/4?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/5?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/6?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/7?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/8?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/9?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/10?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/11?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/12?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/13?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/14?sort=8')
-pages.append('https://www.tokopedia.com/lbagstore/page/15?sort=8')
+pages.append('https://www.tokopedia.com/heylookofficial/page/1?sort=8')
+pages.append('https://www.tokopedia.com/heylookofficial/page/2?sort=8')
+pages.append('https://www.tokopedia.com/heylookofficial/page/3?sort=8')
+pages.append('https://www.tokopedia.com/heylookofficial/page/4?sort=8')
+pages.append('https://www.tokopedia.com/heylookofficial/page/5?sort=8')
 
-conn = sqlite3.connect('../data/scrap.lbagstore.db')
+conn = sqlite3.connect('../data/scrap.heylookofficial.db')
 for page in pages:
     chrome_options = webdriver.ChromeOptions()
     prefs = {"profile.default_content_setting_values.notifications" : 2}
@@ -76,7 +66,7 @@ for page in pages:
     # print(data)
     driver.quit()
     df = pd.DataFrame(data,columns=['name','disc_percent','price_bef_disc','price_sell','rating','href'])
-    df.to_sql('LBAGSTORE_MASTER', conn, if_exists='append', index = True)
+    df.to_sql('heylookofficial_master', conn, if_exists='append', index = True)
     # df.head(n=20)
     data.clear()
     time.sleep(2)
