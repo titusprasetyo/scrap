@@ -1,7 +1,4 @@
-# To add a new cell, type '# %%'
-# To add a new markdown cell, type '# %% [markdown]'
 
-# %%
 import os
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -12,7 +9,7 @@ import time
 import sqlite3
 
 
-# %%
+
 #get all product
 pages = []
 data = []
