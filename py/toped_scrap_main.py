@@ -79,10 +79,10 @@ def scrap_main(url, pages, db_file, table_name):
 def scrap_detail(db_file, table_name):
 
     #grab detail
-    SQLMODE = "replace"
+    SQLMODE = "append"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
-    cur.execute("select a.href, a.name from {} a where a.option not in ('Stok Kosong','Preorder') order by a.ID".format(table_name))
+    cur.execute("select a.href, a.name from {} a where a.option not in ('Stok Kosong','Preorder') and a.name not in (select name from laris88_detail) order by a.ID".format(table_name))
     reader = cur.fetchall()
     data_images = []
     data_variant = []
@@ -92,30 +92,31 @@ def scrap_detail(db_file, table_name):
     driver = webdriver.Chrome('chromedriver',options=chrome_options)
     driver.implicitly_wait(30)
     driver.maximize_window()
-
+    cnt = 0
     for line in reader:
-
+        cnt = cnt + 1
         print("Fetch {}".format(line[0]))
         driver.get(line[0])
             
         # fetch images
         print("Fetch images")
-        elems = driver.find_elements_by_xpath('//div[@data-testid="PDPImageThumbnail"]')
+        elems = driver.find_elements_by_xpath('//div[@data-testid="PDPImageThumbnail"]/div/img')
         counting = 0
         product_image = []
         for elem in elems:
             counting = counting + 1
-            elem.click()
-            time.sleep(3)
-            ee = driver.find_element_by_xpath('//div[@data-testid="PDPImageMain"]/div/div/img')
-            src = ee.get_attribute("src")
-            print(src)
-            if src.startswith('data'):
-                time.sleep(2)
+            if elem.get_attribute("src").startswith("https://ecs7"):
+                elem.click()
+                time.sleep(3)
+                ee = driver.find_element_by_xpath('//div[@data-testid="PDPImageMain"]/div/div/img')
                 src = ee.get_attribute("src")
-            product_image.append(src)
-            if counting == 5:
-                break
+                print(src)
+                if src.startswith('data'):
+                    time.sleep(2)
+                    src = ee.get_attribute("src")
+                product_image.append(src)
+                if counting == 5:
+                    break
         time.sleep(2)
         rows_images = [None] * 14
         if len(product_image) == 5:
@@ -168,14 +169,16 @@ def scrap_detail(db_file, table_name):
 
         # fetch category
         print("Fetch Category")
-        elems = driver.find_elements_by_xpath('//ol[@data-testid="lnkPDPDetailBreadcrumb"]/li')
+        elems = driver.find_elements_by_xpath('//ol[@data-testid="lnkPDPDetailBreadcrumb"]/li/a')
         product_cat = ""
+        product_cat_href = ""
         for elem in range(len(elems)):
-            if elem != len(elems)-1:
-                product_cat = product_cat + "#" + elems[elem].text
-        product_cat = product_cat + "#"
-        print(product_cat)
-        rows_images[7]=product_cat
+            if elem == len(elems)-1:
+                product_cat = elems[elem].text
+                product_cat_href = elems[elem].get_attribute("href")
+        # product_cat = product_cat + "#"
+        # print(product_cat)
+        # rows_images[7]=product_cat
 
         print("Fetch Min Purchase")
         elem = driver.find_element_by_xpath('//div[@data-testid="quantityOrder"]/div/input')
@@ -232,8 +235,29 @@ def scrap_detail(db_file, table_name):
         print(product_desc)
         rows_images[13]=product_desc
 
+        # get cat no
+        driver.get(product_cat_href)
+        elem = driver.find_element_by_xpath('//meta[@name="branch:deeplink:$ios_deeplink_path"]')
+        product_cat_no = elem.get_attribute("content").split("/")[1]
+        product_cat=product_cat+"#"+product_cat_no
+        print("product_cat : {}".format(product_cat))
+        # print(product_cat)
+        rows_images[7]=product_cat
         # append to images table
         data_images.append(rows_images)
+
+        if (cnt%20) == 0 :
+            # insert images
+            df = pd.DataFrame(data_images,columns=['name','images1','images2','images3','images4','images5','weight','category','min_purchase','success_rate','rating_number','product_views','product_id','product_desc'])
+            df.to_sql('laris88_detail', conn, if_exists=SQLMODE, index = False)
+
+            #insert variant
+            df = pd.DataFrame(data_variant,columns=['name','images'])
+            df.to_sql('laris88_variasi', conn, if_exists=SQLMODE, index = False)
+
+            data_images.clear()
+            data_variant.clear()
+            time.sleep(2)
                 
     driver.quit()
     # insert to DB
