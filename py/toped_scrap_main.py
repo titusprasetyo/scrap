@@ -17,7 +17,8 @@ def scrap_main(url, pages, db_file, table_name):
     conn = sqlite3.connect(db_file)
     chrome_options = webdriver.ChromeOptions()
     prefs = {"profile.default_content_setting_values.notifications" : 2}
-    chrome_options.add_experimental_option("prefs",prefs)
+    # chrome_options.add_experimental_option("prefs",prefs)
+    chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
     driver = webdriver.Chrome('chromedriver',options=chrome_options)
     driver.implicitly_wait(30)
     driver.maximize_window()
@@ -70,7 +71,7 @@ def scrap_main(url, pages, db_file, table_name):
                 
     # print(data)
     df = pd.DataFrame(data,columns=['name','disc_percent','price_bef_disc','price_sell','rating','href','option'])
-    df.to_sql(table_name, conn, if_exists='replace', index = True, index_label="ID")
+    df.to_sql(table_name+'_main', conn, if_exists='append', index = True, index_label="ID")
     # df.head(n=20)
     data.clear()
     time.sleep(2)
@@ -82,13 +83,14 @@ def scrap_detail(db_file, table_name):
     SQLMODE = "append"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
-    cur.execute("select a.href, a.name from {} a where a.option not in ('Stok Kosong','Preorder') and a.name not in (select name from laris88_detail) order by a.ID".format(table_name))
+    cur.execute("select a.href, a.name from {}_main a where a.option not in ('Stok Kosong','Preorder') and a.name not in (select name from {}_detail) order by a.ID".format(table_name, table_name))
     reader = cur.fetchall()
     data_images = []
     data_variant = []
     chrome_options = webdriver.ChromeOptions()
     prefs = {"profile.default_content_setting_values.notifications" : 2}
-    chrome_options.add_experimental_option("prefs",prefs)
+    # chrome_options.add_experimental_option("prefs",prefs)
+    chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
     driver = webdriver.Chrome('chromedriver',options=chrome_options)
     driver.implicitly_wait(30)
     driver.maximize_window()
@@ -97,6 +99,14 @@ def scrap_detail(db_file, table_name):
         cnt = cnt + 1
         print("Fetch {}".format(line[0]))
         driver.get(line[0])
+
+        
+        elems = driver.find_element_by_xpath('//p[@data-testid="lblPDPDetailProductStock"]')
+        time.sleep(1)
+        print("Check Stock {}".format(elems.text))
+        if elems.text.lower() == "stok kosong":
+            cnt = cnt - 1
+            continue
             
         # fetch images
         print("Fetch images")
@@ -107,7 +117,7 @@ def scrap_detail(db_file, table_name):
             counting = counting + 1
             if elem.get_attribute("src").startswith("https://ecs7"):
                 elem.click()
-                time.sleep(3)
+                time.sleep(2)
                 ee = driver.find_element_by_xpath('//div[@data-testid="PDPImageMain"]/div/div/img')
                 src = ee.get_attribute("src")
                 print(src)
@@ -117,7 +127,7 @@ def scrap_detail(db_file, table_name):
                 product_image.append(src)
                 if counting == 5:
                     break
-        time.sleep(2)
+        time.sleep(1)
         rows_images = [None] * 14
         if len(product_image) == 5:
             # rows_images = [line[1],product_image[0],product_image[1],product_image[2],product_image[3],product_image[4]]
@@ -228,7 +238,7 @@ def scrap_detail(db_file, table_name):
         #fetch description and weight must scroll down
         print("Fetch description")
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(3)
+        time.sleep(2)
         elem = driver.find_element_by_xpath('//p[@data-testid="lblPDPDeskripsiProduk"]')
         product_desc = elem.text
         product_desc = re.sub(r'http\S+', '', product_desc)
@@ -249,27 +259,27 @@ def scrap_detail(db_file, table_name):
         if (cnt%20) == 0 :
             # insert images
             df = pd.DataFrame(data_images,columns=['name','images1','images2','images3','images4','images5','weight','category','min_purchase','success_rate','rating_number','product_views','product_id','product_desc'])
-            df.to_sql('laris88_detail', conn, if_exists=SQLMODE, index = False)
+            df.to_sql(table_name+'_detail', conn, if_exists=SQLMODE, index = False)
 
             #insert variant
             df = pd.DataFrame(data_variant,columns=['name','images'])
-            df.to_sql('laris88_variasi', conn, if_exists=SQLMODE, index = False)
+            df.to_sql(table_name+'_variasi', conn, if_exists=SQLMODE, index = False)
 
             data_images.clear()
             data_variant.clear()
-            time.sleep(2)
+            time.sleep(1)
                 
     driver.quit()
     # insert to DB
 
     # insert images
     df = pd.DataFrame(data_images,columns=['name','images1','images2','images3','images4','images5','weight','category','min_purchase','success_rate','rating_number','product_views','product_id','product_desc'])
-    df.to_sql('laris88_detail', conn, if_exists=SQLMODE, index = False)
+    df.to_sql(table_name+'_detail', conn, if_exists=SQLMODE, index = False)
 
     #insert variant
     df = pd.DataFrame(data_variant,columns=['name','images'])
-    df.to_sql('laris88_variasi', conn, if_exists=SQLMODE, index = False)
+    df.to_sql(table_name+'_variasi', conn, if_exists=SQLMODE, index = False)
 
     data_images.clear()
     data_variant.clear()
-    time.sleep(2)
+    time.sleep(1)
